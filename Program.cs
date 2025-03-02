@@ -13,10 +13,12 @@ namespace TareaFinalPt2
             var ciudadesEntrega = new List<string> { "Santo Domingo", "Santiago", "Bonao", "Jarabacoa", "Punta Cana" };
             string primeraRutaCompletada = null;
 
+            var cts = new CancellationTokenSource();
+
             foreach (var ciudad in ciudadesEntrega)
             {
                 
-                Task taskCiudad = Task.Run(() => IniciarEntrega(ciudad));
+                Task taskCiudad = Task.Run(() => IniciarEntrega(ciudad,cts.Token));
                 Entrega.Add(taskCiudad);
             }
 
@@ -32,16 +34,16 @@ namespace TareaFinalPt2
             Console.ReadKey();
         }
 
-        static async Task IniciarEntrega(string ciudad)
+        static async Task IniciarEntrega(string ciudad, CancellationToken cancellationToken)
         {
             try
             {
                 Console.WriteLine($"Iniciando entrega en {ciudad}");
-                await Task.Delay(5000); 
+                await Task.Delay(5000, cancellationToken); 
 
                 
-                var verificacion = Task.Factory.StartNew(() => VerificarPaquetes(ciudad), TaskCreationOptions.AttachedToParent);
-                var asignacion = Task.Factory.StartNew(() => AsignarConductor(ciudad), TaskCreationOptions.AttachedToParent);
+                var verificacion = Task.Factory.StartNew(() => VerificarPaquetes(ciudad, cancellationToken), TaskCreationOptions.AttachedToParent);
+                var asignacion = Task.Factory.StartNew(() => AsignarConductor(ciudad, cancellationToken), TaskCreationOptions.AttachedToParent);
 
                 
                 await Task.WhenAll(verificacion, asignacion);
@@ -61,21 +63,23 @@ namespace TareaFinalPt2
                 if (ciudad == "Jarabacoa")
                 {
                     throw new Exception("Error: No se puede entregar en Jarabacoa: Paquete Dañado");
+                    
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error en la entrega de {ciudad}: {ex.Message}");
+                cancellationToken.ThrowIfCancellationRequested();
             }
         }
 
-        static void VerificarPaquetes(string ciudad)
+        static void VerificarPaquetes(string ciudad, CancellationToken cancellationToken)
         {
             Task.Delay(2000).Wait(); 
             Console.WriteLine($"Verificando paquetes en {ciudad}");
         }
 
-        static void AsignarConductor(string ciudad)
+        static void AsignarConductor(string ciudad, CancellationToken cancellationToken)
         {
             Task.Delay(1500).Wait(); 
             Console.WriteLine($"Asignando conductor en {ciudad}");
